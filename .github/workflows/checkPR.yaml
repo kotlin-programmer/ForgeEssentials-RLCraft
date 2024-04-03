@@ -15,9 +15,11 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
       - env:
           GH_TOKEN: ${{ github.token }}
+          PR_OBJ: ${{ toJson(github.event.workflow_run.pull_requests) }}
         run: |
           sleep 5
-          echo ${{ toJson(github.event.workflow_run.pull_requests) }}
+          echo "$PR_OBJ"
+          gh pr status
           FILES=$(gh pr view ${{ github.event.workflow_run.pull_requests[0].number }} --json files --jq '.files.[].path')
           if [[ $FILES =~ "gradle" ]]
           then
