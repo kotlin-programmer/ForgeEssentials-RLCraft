@@ -373,7 +373,8 @@ task processSource(type: Sync) {
 
 compileJava {
     excludes = [
-            'com/forgeessentials/jscripting/TsdGenerator.java'
+            'com/forgeessentials/jscripting/TsdGenerator.java',
+            'com/forgeessentials/multiworld/v2/***'
     ]
 }
 

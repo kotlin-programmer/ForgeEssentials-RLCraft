@@ -30,7 +30,7 @@ public class WorldPoint extends Point
     @Expose(serialize = false)
     protected Level world;
 
-    private static WorldPoint NULL = new WorldPoint("overworld", 0, 0, 0);
+    public static WorldPoint NULL = new WorldPoint("overworld", 0, 0, 0);
     // ------------------------------------------------------------
 
     public WorldPoint(String dim2, int x, int y, int z)
