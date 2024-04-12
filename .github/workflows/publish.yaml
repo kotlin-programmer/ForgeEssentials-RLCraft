@@ -139,9 +139,9 @@ jobs:
           CHANGE_LOG: ${{ steps.download-artifact.outputs.result }}
         run: |
           mkdir -p build/libs
-          mkdir -p -o jscripting
+          mkdir -p jscripting
           unzip binaries.zip -d build/libs
-          unzip jscripting.zip -d jscripting
+          unzip jscripting.zip -d -o jscripting
           mkdir ./tmp
           cp ./build/libs/*.jar ./tmp
           chmod +x gradlew
