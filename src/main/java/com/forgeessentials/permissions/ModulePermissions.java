@@ -78,6 +78,7 @@ public class ModulePermissions extends ConfigLoaderBase implements IPermissionHa
     @SubscribeEvent
     public void handlerFactory(Handler event) {
         event.addPermissionHandler(new ResourceLocation(handlerId), this);
+        ForgeConfig.SERVER.permissionHandler.set(handlerId);
     }
     public ModulePermissions()
     {
@@ -85,7 +86,6 @@ public class ModulePermissions extends ConfigLoaderBase implements IPermissionHa
         permissionHelper = new ZonedPermissionHelper();
         APIRegistry.perms = permissionHelper;
         MinecraftForge.EVENT_BUS.register(this);
-        ForgeConfig.SERVER.permissionHandler.set(handlerId);
         if (ModList.get().isLoaded("ftblib"))
         {
             try
