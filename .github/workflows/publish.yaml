@@ -141,7 +141,7 @@ jobs:
           mkdir -p build/libs
           mkdir -p jscripting
           unzip binaries.zip -d build/libs
-          unzip jscripting.zip -o -d jscripting
+          unzip -o jscripting.zip -d jscripting
           mkdir ./tmp
           cp ./build/libs/*.jar ./tmp
           chmod +x gradlew
