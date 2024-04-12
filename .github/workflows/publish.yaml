@@ -130,7 +130,7 @@ jobs:
             return await github.repos.getReleaseByTag({
                owner: context.repo.owner,
                repo: context.repo.repo, 
-              '${{ github.event.workflow_run.head_branch }}'
+               tag: '${{ github.event.workflow_run.head_branch }}'
             }).body;
           result-encoding: string
       - env:
