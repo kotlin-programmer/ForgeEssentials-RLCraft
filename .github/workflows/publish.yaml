@@ -130,7 +130,7 @@ jobs:
             return await github.repos.getReleaseByTag({
                owner: context.repo.owner,
                repo: context.repo.repo, 
-              '${{ github.event.workflow_run.head_branch }}'
+               tag: '${{ github.event.workflow_run.head_branch }}'
             }).body;
           result-encoding: string
       - env:
@@ -141,7 +141,7 @@ jobs:
           mkdir -p build/libs
           mkdir -p jscripting
           unzip binaries.zip -d build/libs
-          unzip jscripting.zip -d jscripting
+          unzip -o jscripting.zip -d jscripting
           mkdir ./tmp
           cp ./build/libs/*.jar ./tmp
           chmod +x gradlew
