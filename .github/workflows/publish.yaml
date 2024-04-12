@@ -153,3 +153,4 @@ jobs:
           files: |
             ./build/libs/*
             jscripting/*.d.ts
+          tag_name: ${{ github.event.workflow_run.head_branch }}
