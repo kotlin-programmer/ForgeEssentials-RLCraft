@@ -2,6 +2,15 @@ package com.forgeessentials.commands.player;
 
 import java.util.Collection;
 
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
+import net.minecraftforge.server.permission.DefaultPermissionLevel;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.forgeessentials.api.APIRegistry;
 import com.forgeessentials.commands.ModuleCommands;
 import com.forgeessentials.core.commands.ForgeEssentialsCommandBuilder;
@@ -11,14 +20,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.GameType;
-import net.minecraftforge.server.permission.DefaultPermissionLevel;
-import org.jetbrains.annotations.NotNull;
 
 public class CommandGameMode extends ForgeEssentialsCommandBuilder
 {
@@ -44,15 +45,18 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
     {
         for (GameType gametype : GameType.values())
         {
-            if (gametype != GameType.DEFAULT_MODE)
-            {
-                baseBuilder
-                        .then(Commands.literal(gametype.getName())
-                                .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
-                                .then(Commands.argument("target", EntityArgument.players()).executes(
-                                        CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
-                        .executes(CommandContext -> execute(CommandContext, "blank"));
-            }
+            baseBuilder
+                    .then(Commands.literal(gametype.getName())
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
+            baseBuilder
+                    .then(Commands.literal(String.valueOf(gametype.getId()))
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
         }
         return baseBuilder;
     }
