@@ -45,15 +45,18 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
     {
         for (GameType gametype : GameType.values())
         {
-            if (gametype != GameType.DEFAULT_MODE)
-            {
-                baseBuilder
-                        .then(Commands.literal(gametype.getName())
-                                .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
-                                .then(Commands.argument("target", EntityArgument.players()).executes(
-                                        CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
-                        .executes(CommandContext -> execute(CommandContext, "blank"));
-            }
+            baseBuilder
+                    .then(Commands.literal(gametype.getName())
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
+            baseBuilder
+                    .then(Commands.literal(String.valueOf(gametype.getId()))
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
         }
         return baseBuilder;
     }
