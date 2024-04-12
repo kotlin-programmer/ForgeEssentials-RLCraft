@@ -12,14 +12,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.command.CommandException;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.EntityArgument;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraft.commands.CommandRuntimeException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.jetbrains.annotations.NotNull;
 
@@ -50,18 +50,18 @@ public class CommandBed extends ForgeEssentialsCommandBuilder
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSource> setExecution()
+    public LiteralArgumentBuilder<CommandSourceStack> setExecution()
     {
         return baseBuilder.then(Commands.argument("player", EntityArgument.player())
                 .executes(CommandContext -> execute(CommandContext, "blank")));
     }
 
     @Override
-    public int processCommandPlayer(CommandContext<CommandSource> ctx, String params) throws CommandSyntaxException
+    public int processCommandPlayer(CommandContext<CommandSourceStack> ctx, String params) throws CommandSyntaxException
     {
         if (hasPermission(ctx.getSource(), TeleportModule.PERM_BED_OTHERS))
         {
-            ServerPlayerEntity player = EntityArgument.getPlayer(ctx, "player");
+            ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
             if (!player.hasDisconnected())
             {
                 tp(player);
@@ -80,9 +80,9 @@ public class CommandBed extends ForgeEssentialsCommandBuilder
         return Command.SINGLE_SUCCESS;
     }
 
-    private void tp(ServerPlayerEntity player) throws CommandException
+    private void tp(ServerPlayer player) throws CommandRuntimeException
     {
-        World world = ServerLifecycleHooks.getCurrentServer().getLevel(player.getRespawnDimension());
+        Level world = ServerLifecycleHooks.getCurrentServer().getLevel(player.getRespawnDimension());
         if (world == null)
         {
             ChatOutputHandler.chatError(player, "No respawn dim found.");
@@ -97,14 +97,14 @@ public class CommandBed extends ForgeEssentialsCommandBuilder
         }
 
         PlayerInfo.get(player.getGameProfile().getId()).setLastTeleportOrigin(new WarpPoint(player));
-        WarpPoint spawnPoint = new WarpPoint(world.dimension(), spawn, player.xRot, player.yRot);
+        WarpPoint spawnPoint = new WarpPoint(world.dimension(), spawn, player.getXRot(), player.getYRot());
         TeleportHelper.teleport(player, spawnPoint);
     }
 
     @Override
-    public int processCommandConsole(CommandContext<CommandSource> ctx, String params) throws CommandSyntaxException
+    public int processCommandConsole(CommandContext<CommandSourceStack> ctx, String params) throws CommandSyntaxException
     {
-        ServerPlayerEntity player = EntityArgument.getPlayer(ctx, "player");
+        ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         if (!player.hasDisconnected())
         {
             tp(player);

@@ -5,7 +5,7 @@ import javax.script.ScriptException;
 import com.forgeessentials.core.commands.registration.FECommandParsingException;
 import com.forgeessentials.jscripting.ScriptInstance;
 
-import net.minecraft.command.CommandSource;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.Event.Result;
@@ -40,7 +40,7 @@ public abstract class JsEvent<T extends Event>
         return _event;
     }
 
-    public CommandSource _getSender()
+    public CommandSourceStack _getSender()
     {
         return null;
     }
@@ -69,7 +69,7 @@ public abstract class JsEvent<T extends Event>
         try
         {
             this._event = event;
-            CommandSource sender = _getSender();
+            CommandSourceStack sender = _getSender();
             if (sender != null)
                 _script.setLastSender(sender);
 

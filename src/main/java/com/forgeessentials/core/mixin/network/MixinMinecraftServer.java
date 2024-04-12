@@ -7,22 +7,22 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import com.forgeessentials.core.moduleLauncher.ModuleLauncher;
 import com.forgeessentials.serverNetwork.ModuleNetworking;
 
-import net.minecraft.network.ServerStatusResponse;
+import net.minecraft.network.protocol.status.ServerStatus;
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 
 @Mixin(MinecraftServer.class)
 public class MixinMinecraftServer
 {
 
     @ModifyArg(method = "tickServer(Ljava/util/function/BooleanSupplier;)V", 
-            at = @At(value = "INVOKE", 
-            target = "Lnet/minecraft/network/ServerStatusResponse;setPlayers(Lnet/minecraft/network/ServerStatusResponse$Players;)V"), 
+            at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/network/protocol/status/ServerStatus;setPlayers(Lnet/minecraft/network/protocol/status/ServerStatus$Players;)V"), 
             index = 0)
-    public ServerStatusResponse.Players injected(ServerStatusResponse.Players p) {
+    public ServerStatus.Players injected(ServerStatus.Players p) {
         if(!ModuleLauncher.getModuleList().contains(ModuleNetworking.networkModule)) {
             return p;
         }
-        return new ServerStatusResponse.Players(ServerLifecycleHooks.getCurrentServer().getMaxPlayers(),ModuleNetworking.getInstance().getTranferManager().onlinePlayers.size());
+        return new ServerStatus.Players(ServerLifecycleHooks.getCurrentServer().getMaxPlayers(),ModuleNetworking.getInstance().getTranferManager().onlinePlayers.size());
     }
 }

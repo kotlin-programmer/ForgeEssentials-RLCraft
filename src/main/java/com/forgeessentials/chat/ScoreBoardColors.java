@@ -1,17 +1,17 @@
 package com.forgeessentials.chat;
 
-import com.forgeessentials.api.APIRegistry;
-import com.forgeessentials.api.UserIdent;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
-import net.minecraft.util.text.Color;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent.TabListNameFormat;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-import java.util.Objects;
-import java.util.regex.Pattern;
+import com.forgeessentials.api.APIRegistry;
+import com.forgeessentials.api.UserIdent;
 
 public class ScoreBoardColors
 {
@@ -46,8 +46,8 @@ public class ScoreBoardColors
         {
             // User has permissions set individually
             e.setDisplayName(
-                    new StringTextComponent(e.getPlayer().getName().getString()).
-                            withStyle(Style.EMPTY.withColor(Color.fromRgb(Integer.parseInt(userColor, 16))))
+                    new TextComponent(e.getPlayer().getName().getString()).
+                            withStyle(Style.EMPTY.withColor(TextColor.fromRgb(Integer.parseInt(userColor, 16))))
             );
         }
         else if (!Objects.equals(groupColor, DEFAULT_COLOR) &&
@@ -56,16 +56,16 @@ public class ScoreBoardColors
         {
             // User has permissions set as part of group
             e.setDisplayName(
-                    new StringTextComponent(e.getPlayer().getName().getString()).
-                            withStyle(Style.EMPTY.withColor(Color.fromRgb(Integer.parseInt(groupColor, 16))))
+                    new TextComponent(e.getPlayer().getName().getString()).
+                            withStyle(Style.EMPTY.withColor(TextColor.fromRgb(Integer.parseInt(groupColor, 16))))
             );
         }
         else
         {
             // User has default permissions
             e.setDisplayName(
-                    new StringTextComponent(e.getPlayer().getName().getString()).
-                            withStyle(Style.EMPTY.withColor(Color.fromRgb(Integer.parseInt("FFFFFF", 16))))
+                    new TextComponent(e.getPlayer().getName().getString()).
+                            withStyle(Style.EMPTY.withColor(TextColor.fromRgb(Integer.parseInt("FFFFFF", 16))))
             );
 
         }

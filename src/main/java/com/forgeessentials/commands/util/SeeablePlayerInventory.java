@@ -1,14 +1,14 @@
 package com.forgeessentials.commands.util;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.ItemStack;
 
-public class SeeablePlayerInventory implements IInventory
+public class SeeablePlayerInventory implements Container
 {
-    public final PlayerEntity victim;
+    public final Player victim;
 
-    public SeeablePlayerInventory(PlayerEntity player)
+    public SeeablePlayerInventory(Player player)
     {
         victim = player;
     }
@@ -22,48 +22,48 @@ public class SeeablePlayerInventory implements IInventory
     @Override
     public boolean isEmpty()
     {
-        return victim.inventory.isEmpty();
+        return victim.getInventory().isEmpty();
     }
 
     @Override
     public ItemStack getItem(int section)
     {
-    	return victim.inventory.getItem(section);
+    	return victim.getInventory().getItem(section);
     }
 
     @Override
     public ItemStack removeItem(int section, int number)
     {
-    	return victim.inventory.removeItem(section, number);
+    	return victim.getInventory().removeItem(section, number);
     }
 
     @Override
     public ItemStack removeItemNoUpdate(int section)
     {
-    	return victim.inventory.removeItemNoUpdate(section);
+    	return victim.getInventory().removeItemNoUpdate(section);
     }
 
     @Override
     public void setItem(int section, ItemStack stack)
     {
-    	victim.inventory.setItem(section, stack);
+    	victim.getInventory().setItem(section, stack);
     }
 
     @Override
     public int getMaxStackSize()
     {
-        return victim.inventory.getMaxStackSize();
+        return victim.getInventory().getMaxStackSize();
     }
 
     @Override
     public void setChanged()
     {
-        victim.inventory.setChanged();
+        victim.getInventory().setChanged();
         victim.inventoryMenu.broadcastChanges();
     }
 
     @Override
-    public boolean stillValid(PlayerEntity p_70300_1_)
+    public boolean stillValid(Player p_70300_1_)
     {
         return true;
     }
@@ -71,12 +71,12 @@ public class SeeablePlayerInventory implements IInventory
     @Override
     public boolean canPlaceItem(int section, ItemStack stack)
     {
-    	return victim.inventory.canPlaceItem(section, stack);
+    	return victim.getInventory().canPlaceItem(section, stack);
     }
 
     @Override
     public void clearContent()
     {
-        victim.inventory.clearContent();
+        victim.getInventory().clearContent();
     }
 }

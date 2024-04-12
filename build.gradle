@@ -37,6 +37,7 @@ plugins {
 apply plugin: 'jacoco'
 apply plugin: 'org.spongepowered.mixin'
 
+
 sonarqube {
     properties {
         properties['sonar.projectKey'] = "com.forgeessentials:forgeessentials"
@@ -101,13 +102,15 @@ if (buildNumber != "DEV"){
 }
 
 ext.set 'changelog', System.getenv("CHANGE_LOG")
-ext.set 'releaseType', 'beta'
+ext.set 'releaseType', 'alpha'
 
 // Get commit hash
 
+
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import org.apache.tools.ant.filters.ReplaceTokens
 import org.ajoberstar.grgit.Grgit
+import org.apache.tools.ant.filters.ReplaceTokens
+
 def repo = Grgit.open(project.file("."))
 ext.gitCommitHash = repo.log().find().abbreviatedId
 
@@ -115,9 +118,7 @@ ext.gitCommitHash = repo.log().find().abbreviatedId
 version = "$mod_base.$mod_major.$buildNumber"
 group = "com.forgeessentials"
 archivesBaseName = "forgeessentials"
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-//java.toolchain.languageVersion = JavaLanguageVersion.of(8) // Mojang ships Java 8 to end users, so your mod should target Java 8.
+java.toolchain.languageVersion = JavaLanguageVersion.of(16)
 println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 println('Running Tasks: ' +project.gradle.startParameter.taskNames)
 
@@ -192,8 +193,8 @@ project.afterEvaluate {
 
 // Set up forge options
 minecraft {
-	mappings channel: 'official', version: '1.16.5'
-    //accessTransformer = file('src/main/resources/META-INF/forgeessentials_at.cfg')
+	mappings channel: 'official', version: '1.17.1'
+    accessTransformer = file('src/main/resources/META-INF/forgeessentials_at.cfg')
     runs {
 	    client {
 	            workingDirectory project.file('rundir')
@@ -311,21 +312,22 @@ dependencies {
 	clientannotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 	
 	// WorldEdit
-	implementation 'com.sk89q.worldedit:worldedit-core:7.2.6-SNAPSHOT'
-	implementation 'com.sk89q.worldedit:worldedit-forge-mc1.16.3:7.2.6-SNAPSHOT'
+	implementation 'com.sk89q.worldedit:worldedit-core:7.2.7-SNAPSHOT'
+	implementation 'com.sk89q.worldedit:worldedit-forge-mc1.17.1:7.2.7-SNAPSHOT'
 
 	implementation "baubles:baubles:1.8.7.1:1.16.5"
 
 	implementation 'org.spongepowered:spongeapi:8.0.0'
-	compileOnly ("io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT") {
-		exclude group: "org.spongepowered", module: "mixin"
-	}
+	//compileOnly ("io.github.opencubicchunks:cubicchunks-api:1.12.2-0.0-SNAPSHOT") {
+	//	exclude group: "org.spongepowered", module: "mixin"
+	//}
 	//compileOnly "com.feed_the_beast.mods:FTBLib:5.4.7.2"
 	//compileOnly "com.feed_the_beast.mods:FTBUtilities:5.4.1.131"
 
 	// TOOLS.jar from jdk for javadoc support
-	implementation files(System.getenv("JAVA_HOME") + "/lib/tools.jar")
-	
+	// Copied Into libs folder
+	//implementation files(System.getenv("JAVA_HOME") + "/lib/tools.jar")
+
 	//dependicies for chat addon
 	chataddonCompile sourceSets.main.output
 }
@@ -367,6 +369,12 @@ task processSource(type: Sync) {
     from sourceSets.utils.java
     filter(ReplaceTokens, tokens: ['_MCVERSION_':project.minecraftVersion, '_BASEVERSION_': project.mod_base, '_MAJORVERSION_': project.mod_major, '_RELEASETYPE_': project.releaseType])
     into "$buildDir/src"
+}
+
+compileJava {
+    excludes = [
+            'com/forgeessentials/jscripting/TsdGenerator.java'
+    ]
 }
 
 project.compileUtilsJava {
@@ -487,7 +495,8 @@ shadowJar {
 	relocate  'antlr','com.forgeessentials.thirdparty.antlr'
 	//relocate  'com.fasterxml','com.forgeessentials.thirdparty.com.fasterxml'
 	relocate  'com.mysql','com.forgeessentials.thirdparty.com.mysql'
-	configurations = [project.configurations.shadowLib]
+
+    configurations = [project.configurations.shadowLib]
 	archiveClassifier = "shadow"
 
 	from sourceSets.main.output
@@ -503,7 +512,7 @@ jar {
 	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 	dependsOn clientJar
 	dependsOn shadowJar
-    dependsOn "tsd"
+    // dependsOn "tsd"
     archiveClassifier = "server"
 	archiveAppendix = project.minecraftVersion
 	

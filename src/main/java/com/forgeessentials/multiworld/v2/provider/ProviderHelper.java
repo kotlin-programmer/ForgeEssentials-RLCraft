@@ -12,19 +12,21 @@ import java.util.stream.Collectors;
 
 import com.forgeessentials.multiworld.v2.utils.MultiworldException;
 import com.forgeessentials.util.output.logger.LoggingHandler;
+import com.google.common.collect.Iterables;
 
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.RegistryKey;
-import net.minecraft.util.registry.DynamicRegistries;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.WorldGenRegistries;
-import net.minecraft.world.DimensionType;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.provider.BiomeProvider;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.DimensionSettings;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 import net.minecraftforge.forgespi.language.ModFileScanData;
 
 public class ProviderHelper {
@@ -41,7 +43,7 @@ public class ProviderHelper {
     /**
      * Mapping from DimensionSettings names to DimensionSettings objects
      */
-    private Map<String, DimensionSettings> dimensionSettings = new TreeMap<>();
+    private Map<String, NoiseGeneratorSettings> dimensionSettings = new TreeMap<>();
 
     /**
      * Mapping from BiomeProvider names to BiomeProvider objects
@@ -72,14 +74,13 @@ public class ProviderHelper {
      */
     public void loadDimensionTypes()
     {
-		MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-		DynamicRegistries registries = server.registryAccess();
-		Registry<DimensionType> loadedProviders = registries.dimensionTypes();
-		LoggingHandler.felog.info("Found {} DimensionTypes", loadedProviders.entrySet().size());
-		for (Entry<RegistryKey<DimensionType>, DimensionType> provider : loadedProviders.entrySet()) {
-			dimensionTypes.put(provider.getKey().location().toString(), provider.getValue());
-			if(provider.getKey().location().getNamespace().equals("minecraft")) {
-				vanillaDimensionTypes.put(provider.getKey().location().toString(), provider.getValue());
+		Iterable<ServerLevel> serverLevels = ServerLifecycleHooks.getCurrentServer().getAllLevels();
+
+		LoggingHandler.felog.info("Found {} DimensionTypes", Iterables.size(serverLevels));
+		for (ServerLevel serverLevel : serverLevels) {
+			dimensionTypes.put(serverLevel.dimension().location().toString(), serverLevel.dimensionType());
+			if(serverLevel.dimension().location().getNamespace().equals("minecraft")) {
+				vanillaDimensionTypes.put(serverLevel.dimension().location().toString(), serverLevel.dimensionType());
 			}
 		}
 
@@ -103,9 +104,9 @@ public class ProviderHelper {
     /**
      * Returns the {@Link BiomeProvider} for a given biomeProvider {@Link String}
      */
-    public BiomeProvider generateBiomeProviderByName(String biomeProviderType, Registry<Biome> biomes, long seed) throws MultiworldException
+    public BiomeSource generateBiomeProviderByName(String biomeProviderType, Registry<Biome> biomes, long seed) throws MultiworldException
     {
-    	BiomeProvider type=null;
+    	BiomeSource type=null;
     	try {
     		BiomeProviderHolderBase holder =  biomeProviderTypes.get(biomeProviderType);
     		type = holder.createBiomeProvider(biomes, seed);
@@ -127,18 +128,18 @@ public class ProviderHelper {
     	
 		final List<ModFileScanData.AnnotationData> data = ModList.get().getAllScanData().stream()
 				.map(ModFileScanData::getAnnotations).flatMap(Collection::stream)
-				.filter(a -> MOD.equals(a.getAnnotationType())).collect(Collectors.toList());
+				.filter(a -> MOD.equals(a.annotationType())).collect(Collectors.toList());
 
 		for (ModFileScanData.AnnotationData asm : data) {
 			try {
-				Class<?> clazz = Class.forName(asm.getMemberName());
+				Class<?> clazz = Class.forName(asm.memberName());
 				if (BiomeProviderHolderBase.class.isAssignableFrom(clazz)) {
 					BiomeProviderHolderBase handler = (BiomeProviderHolderBase) clazz.getDeclaredConstructor().newInstance();
 					FEBiomeProvider annot = handler.getClass().getAnnotation(FEBiomeProvider.class);
 					biomeProviderUntested.put(annot.providerName(), handler);
 				}
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-				LoggingHandler.felog.debug("Could not load FEBiomeProvider: " + asm.getMemberName());
+				LoggingHandler.felog.debug("Could not load FEBiomeProvider: " + asm.memberName());
 			} catch (IllegalArgumentException | SecurityException | NoSuchMethodException
 					| InvocationTargetException e) {
 				e.printStackTrace();
@@ -173,7 +174,7 @@ public class ProviderHelper {
     /**
      * Returns the {@Link ChunkGenerator} for a given chunkGenerator {@Link String}
      */
-    public ChunkGenerator generateChunkGeneratorByName(Registry<Biome> biomes, String chunkGeneratorType, BiomeProvider biome, long seed, Supplier<DimensionSettings> dimSettings) throws MultiworldException
+    public ChunkGenerator generateChunkGeneratorByName(Registry<Biome> biomes, String chunkGeneratorType, BiomeSource biome, long seed, Supplier<NoiseGeneratorSettings> dimSettings) throws MultiworldException
     {
     	ChunkGenerator type=null;
     	try {
@@ -197,18 +198,18 @@ public class ProviderHelper {
     	
 		final List<ModFileScanData.AnnotationData> data = ModList.get().getAllScanData().stream()
 				.map(ModFileScanData::getAnnotations).flatMap(Collection::stream)
-				.filter(a -> MOD.equals(a.getAnnotationType())).collect(Collectors.toList());
+				.filter(a -> MOD.equals(a.annotationType())).collect(Collectors.toList());
 
 		for (ModFileScanData.AnnotationData asm : data) {
 			try {
-				Class<?> clazz = Class.forName(asm.getMemberName());
+				Class<?> clazz = Class.forName(asm.memberName());
 				if (ChunkGeneratorHolderBase.class.isAssignableFrom(clazz)) {
 					ChunkGeneratorHolderBase handler = (ChunkGeneratorHolderBase) clazz.getDeclaredConstructor().newInstance();
 					FEChunkGenProvider annot = handler.getClass().getAnnotation(FEChunkGenProvider.class);
 					chunkGeneratorUntested.put(annot.providerName(), handler);
 				}
 			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-				LoggingHandler.felog.debug("Could not load FEChunkGenProvider: " + asm.getMemberName());
+				LoggingHandler.felog.debug("Could not load FEChunkGenProvider: " + asm.memberName());
 			} catch (IllegalArgumentException | SecurityException | NoSuchMethodException
 					| InvocationTargetException e) {
 				e.printStackTrace();
@@ -242,9 +243,9 @@ public class ProviderHelper {
     /**
      * Returns the {@Link DimensionSettings} for a given dimensionSettings {@Link String}
      */
-    public DimensionSettings getDimensionSettingsByName(String dimensionSetting) throws MultiworldException
+    public NoiseGeneratorSettings getDimensionSettingsByName(String dimensionSetting) throws MultiworldException
     {
-    	DimensionSettings type = dimensionSettings.get(dimensionSetting);
+    	NoiseGeneratorSettings type = dimensionSettings.get(dimensionSetting);
         if (type == null)
             throw new MultiworldException(MultiworldException.Type.NO_DIMENSION_SETTINGS);
         return type;
@@ -255,8 +256,8 @@ public class ProviderHelper {
      */
     public void loadDimensionSettings()
     {
-    	LoggingHandler.felog.info("Found {} DimensionSettings", WorldGenRegistries.NOISE_GENERATOR_SETTINGS.entrySet().size());
-		for (Entry<RegistryKey<DimensionSettings>, DimensionSettings> provider : WorldGenRegistries.NOISE_GENERATOR_SETTINGS.entrySet()) {
+    	LoggingHandler.felog.info("Found {} DimensionSettings", BuiltinRegistries.NOISE_GENERATOR_SETTINGS.entrySet().size());
+		for (Entry<ResourceKey<NoiseGeneratorSettings>, NoiseGeneratorSettings> provider : BuiltinRegistries.NOISE_GENERATOR_SETTINGS.entrySet()) {
 			dimensionSettings.put(provider.getKey().location().toString(), provider.getValue());
 		}
 
@@ -265,7 +266,7 @@ public class ProviderHelper {
             LoggingHandler.felog.debug("# " + worldType);
     }
 
-    public Map<String, DimensionSettings> getDimensionSettings()
+    public Map<String, NoiseGeneratorSettings> getDimensionSettings()
     {
         return dimensionSettings;
     }

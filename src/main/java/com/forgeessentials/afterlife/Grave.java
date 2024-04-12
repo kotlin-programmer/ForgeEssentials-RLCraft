@@ -19,20 +19,20 @@ import com.forgeessentials.util.output.ChatOutputHandler;
 import com.forgeessentials.util.output.logger.LoggingHandler;
 import com.google.gson.annotations.Expose;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.container.ChestContainer;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.inventory.container.SimpleNamedContainerProvider;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class Grave implements Loadable
@@ -66,7 +66,7 @@ public class Grave implements Loadable
     @Expose(serialize = false)
     private BlockState blockState = block.defaultBlockState();
 
-    public static Grave createGrave(PlayerEntity player, Collection<ItemEntity> drops)
+    public static Grave createGrave(Player player, Collection<ItemEntity> drops)
     {
         if (!APIRegistry.perms.checkPermission(player, ModuleAfterlife.PERM_DEATHCHEST))
             return null;
@@ -95,7 +95,7 @@ public class Grave implements Loadable
         return grave;
     }
 
-    public Grave(PlayerEntity player, Collection<ItemEntity> drops, int xp)
+    public Grave(Player player, Collection<ItemEntity> drops, int xp)
     {
         this.xp = xp;
         this.owner = player.getGameProfile().getId();
@@ -129,8 +129,9 @@ public class Grave implements Loadable
         player.level.setBlockAndUpdate(point.getBlockPos(), blockState);
         if (blockState.getBlock() == block)
         {
-            TileEntitySkullGrave skull = new TileEntitySkullGrave(UserIdent.getGameProfileByUuid(owner));
-            player.level.setBlockEntity(point.getBlockPos(), skull);
+            TileEntitySkullGrave skull = new TileEntitySkullGrave(point.getBlockPos(), blockState);
+            skull.setOwner(UserIdent.getGameProfileByUuid(owner));
+            player.level.setBlockEntity(skull);
             LoggingHandler.felog.debug(String.format("Placing playerHead for player %s at %s",
                     player.getDisplayName().getString(), point.getBlockPos()));
         }
@@ -147,7 +148,7 @@ public class Grave implements Loadable
     {
         if (point.getWorld() == null)
         {
-            ServerWorld dworld = ServerLifecycleHooks.getCurrentServer()
+            ServerLevel dworld = ServerLifecycleHooks.getCurrentServer()
                     .getLevel(ServerUtil.getWorldKeyFromString(point.getDimension()));
             if (dworld == null)
             {
@@ -171,11 +172,11 @@ public class Grave implements Loadable
             // Grave is destroyed - repair if protection is still active
             if (isProtected)
             {
-                point.getWorld().setBlockAndUpdate(point.getBlockPos(), blockState);
                 if (blockState.getBlock() == block)
                 {
-                    TileEntitySkullGrave skull = new TileEntitySkullGrave(UserIdent.getGameProfileByUuid(owner));
-                    point.getWorld().setBlockEntity(point.getBlockPos(), skull);
+                    TileEntitySkullGrave skull = new TileEntitySkullGrave(point.getBlockPos(), blockState);
+                    skull.setOwner(UserIdent.getGameProfileByUuid(owner));
+                    point.getWorld().setBlockEntity(skull);
                 }
             }
             else
@@ -191,13 +192,13 @@ public class Grave implements Loadable
         }
     }
 
-    public boolean canOpen(PlayerEntity player)
+    public boolean canOpen(Player player)
     {
         if (open)
             return false;
-        if (!isProtected)
-            return true;
         if (player.getGameProfile().getId().equals(owner))
+            return true;
+        if (!isProtected)
             return true;
         return APIRegistry.perms.checkPermission(player, ModuleAfterlife.PERM_DEATHCHEST_BYPASS);
     }
@@ -217,7 +218,7 @@ public class Grave implements Loadable
         return point;
     }
 
-    public void interact(ServerPlayerEntity player)
+    public void interact(ServerPlayer player)
     {
         if (isOpen())
         {
@@ -241,8 +242,8 @@ public class Grave implements Loadable
         if (player.containerMenu != player.inventoryMenu)
             player.closeContainer();
         player.nextContainerCounter();
-        player.openMenu(new SimpleNamedContainerProvider(
-                (i, inv, p) -> new ChestContainer(ContainerType.GENERIC_9x5, i, inv, invGrave, 5),
+        player.openMenu(new SimpleMenuProvider(
+                (i, inv, p) -> new ChestMenu(MenuType.GENERIC_9x5, i, inv, invGrave, 5),
                 invGrave.getDisplayName()));
     }
 

@@ -10,8 +10,8 @@ import com.forgeessentials.jscripting.wrapper.JsWrapper;
 import com.forgeessentials.jscripting.wrapper.mc.world.JsWorld;
 import com.forgeessentials.util.ServerUtil;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.nbt.CompoundTag;
 
 public class JsEntity<T extends Entity> extends JsWrapper<T>
 {
@@ -129,17 +129,12 @@ public class JsEntity<T extends Entity> extends JsWrapper<T>
 
     public int getChunkCoordX()
     {
-        return that.xChunk;
-    }
-
-    public int getChunkCoordY()
-    {
-        return that.yChunk;
+        return that.chunkPosition().x;
     }
 
     public int getChunkCoordZ()
     {
-        return that.zChunk;
+        return that.chunkPosition().z;
     }
 
     public float getWidth()
@@ -165,7 +160,7 @@ public class JsEntity<T extends Entity> extends JsWrapper<T>
     public JsEntity<?> getRidingEntity()
     {
         if (ridingEntity == null)
-            ridingEntity = get(that.getEntity().getVehicle());
+            ridingEntity = get(that.getVehicle());
         return ridingEntity;
     }
 
@@ -196,7 +191,7 @@ public class JsEntity<T extends Entity> extends JsWrapper<T>
      */
     public void _setNbt(String value)
     {
-        ServerUtil.copyNbt(that.getPersistentData(), DataManager.fromJson(value, CompoundNBT.class));
+        ServerUtil.copyNbt(that.getPersistentData(), DataManager.fromJson(value, CompoundTag.class));
     }
 
     public String getEntityType()

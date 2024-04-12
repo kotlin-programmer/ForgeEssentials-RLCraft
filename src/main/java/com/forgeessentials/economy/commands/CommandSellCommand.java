@@ -14,14 +14,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.EntityArgument;
-import net.minecraft.command.arguments.ItemArgument;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.item.ItemArgument;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.jetbrains.annotations.NotNull;
 
@@ -62,7 +62,7 @@ public class CommandSellCommand extends ForgeEssentialsCommandBuilder
      */
 
     @Override
-    public LiteralArgumentBuilder<CommandSource> setExecution()
+    public LiteralArgumentBuilder<CommandSourceStack> setExecution()
     {
         return baseBuilder.then(Commands.argument("player", EntityArgument.player())
                 .then(Commands.argument("item", ItemArgument.item())
@@ -72,10 +72,10 @@ public class CommandSellCommand extends ForgeEssentialsCommandBuilder
     }
 
     @Override
-    public int execute(CommandContext<CommandSource> ctx, String params) throws CommandSyntaxException
+    public int execute(CommandContext<CommandSourceStack> ctx, String params) throws CommandSyntaxException
     {
         UserIdent ident = UserIdent.get(EntityArgument.getPlayer(ctx, "player"));
-        ServerPlayerEntity player = ident.getPlayerMP();
+        ServerPlayer player = ident.getPlayerMP();
 
         int amount = IntegerArgumentType.getInteger(ctx, "amount");
 
@@ -83,9 +83,9 @@ public class CommandSellCommand extends ForgeEssentialsCommandBuilder
         ItemStack itemStack = new ItemStack(item, amount);
 
         int foundStacks = 0;
-        for (int slot = 0; slot < player.inventory.items.size(); slot++)
+        for (int slot = 0; slot < player.getInventory().items.size(); slot++)
         {
-            ItemStack stack = player.inventory.items.get(slot);
+            ItemStack stack = player.getInventory().items.get(slot);
             if (stack != ItemStack.EMPTY && stack.getItem() == itemStack.getItem()
                     && (itemStack.getDamageValue() == -1 || stack.getDamageValue() == itemStack.getDamageValue()))
                 foundStacks += stack.getCount();
@@ -106,14 +106,14 @@ public class CommandSellCommand extends ForgeEssentialsCommandBuilder
                 .performCommand(new DoAsCommandSender(ModuleEconomy.ECONOMY_IDENT, player.createCommandSourceStack())
                         .createCommandSourceStack(), StringArgumentType.getString(ctx, "command"));
 
-        for (int slot = 0; slot < player.inventory.items.size(); slot++)
+        for (int slot = 0; slot < player.getInventory().items.size(); slot++)
         {
-            ItemStack stack = player.inventory.items.get(slot);
+            ItemStack stack = player.getInventory().items.get(slot);
             if (stack != ItemStack.EMPTY && stack.getItem() == itemStack.getItem()
                     && (itemStack.getDamageValue() == -1 || stack.getDamageValue() == itemStack.getDamageValue()))
             {
                 int removeCount = Math.min(stack.getCount(), amount);
-                player.inventory.removeItem(slot, removeCount);
+                player.getInventory().removeItem(slot, removeCount);
                 foundStacks -= removeCount;
                 amount -= removeCount;
                 if (amount <= 0)

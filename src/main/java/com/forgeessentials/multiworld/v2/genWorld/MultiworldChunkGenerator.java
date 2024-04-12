@@ -1,23 +1,25 @@
 package com.forgeessentials.multiworld.v2.genWorld;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
 import com.mojang.serialization.Codec;
 
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.util.registry.RegistryLookupCodec;
-import net.minecraft.world.Blockreader;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.Biomes;
-import net.minecraft.world.biome.provider.SingleBiomeProvider;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.Heightmap.Type;
-import net.minecraft.world.gen.WorldGenRegion;
-import net.minecraft.world.gen.feature.structure.StructureManager;
-import net.minecraft.world.gen.settings.DimensionStructuresSettings;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.RegistryLookupCodec;
+import net.minecraft.world.level.NoiseColumn;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.biome.FixedBiomeSource;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.Heightmap.Types;
+import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.world.level.StructureFeatureManager;
+import net.minecraft.world.level.levelgen.StructureSettings;
 //not used rn
 public class MultiworldChunkGenerator extends ChunkGenerator
 {
@@ -30,7 +32,7 @@ public class MultiworldChunkGenerator extends ChunkGenerator
 	// create generator on server init from file
 	public MultiworldChunkGenerator(Registry<Biome> biomes)
 	{
-		super(new SingleBiomeProvider(biomes.getOrThrow(Biomes.PLAINS)), new DimensionStructuresSettings(false));
+		super(new FixedBiomeSource(biomes.getOrThrow(Biomes.PLAINS)), new StructureSettings(false));
 		this.biomes = biomes;
 	}
 	
@@ -57,24 +59,24 @@ public class MultiworldChunkGenerator extends ChunkGenerator
 	}
 
 	@Override
-	public void buildSurfaceAndBedrock(WorldGenRegion p_225551_1_, IChunk p_225551_2_) {
+	public void buildSurfaceAndBedrock(WorldGenRegion p_225551_1_, ChunkAccess p_225551_2_) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void fillFromNoise(IWorld p_230352_1_, StructureManager p_230352_2_, IChunk p_230352_3_) {
+	public CompletableFuture<ChunkAccess> fillFromNoise(Executor p_156171_, StructureFeatureManager p_156172_, ChunkAccess p_156173_) {
 		// TODO Auto-generated method stub
-		
+		return null;
 	}
 
 	@Override
-	public int getBaseHeight(int p_222529_1_, int p_222529_2_, Type p_222529_3_) {
+	public int getBaseHeight(int p_156153_, int p_156154_, Types p_156155_, LevelHeightAccessor p_156156_) {
 		return 0;
 	}
 
 	@Override
-	public IBlockReader getBaseColumn(int p_230348_1_, int p_230348_2_) {
-		return new Blockreader(new BlockState[0]);
+	public NoiseColumn getBaseColumn(int p_156150_, int p_156151_, LevelHeightAccessor p_156152_) {
+		return new NoiseColumn(1, new BlockState[0]);
 	}
 }

@@ -9,11 +9,11 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 
-import net.minecraft.command.CommandException;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
+import net.minecraft.commands.CommandRuntimeException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.loading.moddiscovery.ModInfo;
+import net.minecraftforge.forgespi.language.IModInfo;
 import net.minecraftforge.server.permission.DefaultPermissionLevel;
 import org.jetbrains.annotations.NotNull;
 
@@ -44,7 +44,7 @@ public class CommandModlist extends ForgeEssentialsCommandBuilder
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSource> setExecution()
+    public LiteralArgumentBuilder<CommandSourceStack> setExecution()
     {
         return baseBuilder
                 .then(Commands.argument("page", IntegerArgumentType.integer(1, 40))
@@ -53,7 +53,7 @@ public class CommandModlist extends ForgeEssentialsCommandBuilder
     }
 
     @Override
-    public int execute(CommandContext<CommandSource> ctx, String params) throws CommandException
+    public int execute(CommandContext<CommandSourceStack> ctx, String params) throws CommandRuntimeException
     {
         int num = 0;
         if (params.equals("select"))
@@ -68,14 +68,14 @@ public class CommandModlist extends ForgeEssentialsCommandBuilder
 
         ChatOutputHandler.chatNotification(ctx.getSource(),
                 String.format("--- Showing modlist page %1$d of %2$d ---", page + 1, pages));
-        List<ModInfo> mods = ModList.get().getMods();
+        List<IModInfo> mods = ModList.get().getMods();
         for (int i = page * perPage; i < min + perPage; i++)
         {
             if (i >= size)
             {
                 break;
             }
-            ModInfo mod = mods.get(i);
+            IModInfo mod = mods.get(i);
             ChatOutputHandler.chatNotification(ctx.getSource(), mod.getDisplayName() + " - " + mod.getVersion());
         }
         return Command.SINGLE_SUCCESS;

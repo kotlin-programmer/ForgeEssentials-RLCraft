@@ -4,10 +4,10 @@ import java.sql.Blob;
 
 import com.forgeessentials.playerlogger.PlayerLogger;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class CachedBlockData
 {
@@ -20,7 +20,7 @@ public class CachedBlockData
 
     public final Blob tileEntityBlob;
 
-    public CachedBlockData(World world, BlockPos pos)
+    public CachedBlockData(Level world, BlockPos pos)
     {
         this.pos = pos;
         state = world.getBlockState(pos);

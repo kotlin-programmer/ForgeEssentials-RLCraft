@@ -16,6 +16,8 @@ import javax.script.ScriptException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.openjdk.nashorn.api.scripting.NashornScriptEngine;
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
 import com.forgeessentials.api.APIRegistry;
 import com.forgeessentials.api.ScriptHandler;
@@ -23,6 +25,7 @@ import com.forgeessentials.core.ForgeEssentials;
 import com.forgeessentials.core.commands.registration.FECommandManager;
 import com.forgeessentials.core.moduleLauncher.FEModule;
 import com.forgeessentials.core.moduleLauncher.FEModule.Preconditions;
+import com.forgeessentials.data.v2.DataManager;
 import com.forgeessentials.jscripting.command.CommandJScript;
 import com.forgeessentials.jscripting.wrapper.JsLocalStorage;
 import com.forgeessentials.jscripting.wrapper.mc.JsCommandSource;
@@ -34,13 +37,13 @@ import com.forgeessentials.util.output.ChatOutputHandler;
 import com.forgeessentials.util.output.logger.LoggingHandler;
 import com.mojang.brigadier.CommandDispatcher;
 
-import net.minecraft.command.CommandException;
-import net.minecraft.command.CommandSource;
+import net.minecraft.commands.CommandRuntimeException;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 
-@FEModule(name = "JScripting", parentMod = ForgeEssentials.class, isCore = false, canDisable = false, version=ForgeEssentials.CURRENT_MODULE_VERSION)
+@FEModule(name = "JScripting", parentMod = ForgeEssentials.class, version=ForgeEssentials.CURRENT_MODULE_VERSION)
 public class ModuleJScripting extends ServerEventHandler implements ScriptHandler
 {
 
@@ -99,7 +102,9 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
     @Preconditions
     public static boolean canLoad()
     {
-        ScriptEngine engine = SEM.getEngineByName("JavaScript");
+        SEM.registerEngineName("nashorn", new NashornScriptEngineFactory());
+        ScriptEngine engine = SEM.getEngineByName("nashorn");
+        LoggingHandler.felog.debug(engine.toString());
         if (engine != null && (factory = engine.getFactory()) != null)
         {
             isNashorn = factory.getEngineName().toLowerCase().contains("nashorn");
@@ -122,7 +127,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
         }
     }
 
-    public CommandDispatcher<CommandSource> dispatcher = null;
+    public CommandDispatcher<CommandSourceStack> dispatcher = null;
     @SubscribeEvent
     public void registerCommands(RegisterCommandsEvent event)
     {
@@ -161,7 +166,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
         reloadScripts(ServerLifecycleHooks.getCurrentServer().createCommandSourceStack());
     }
 
-    public void reloadScripts(CommandSource sender)
+    public void reloadScripts(CommandSourceStack sender)
     {
         unloadScripts();
         loadScripts(sender);
@@ -174,7 +179,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
         scripts.clear();
     }
 
-    public void loadScripts(CommandSource sender)
+    public void loadScripts(CommandSourceStack sender)
     {
         Iterator<File> it;
         try {
@@ -204,7 +209,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
             {
                 getScript(file);
             }
-            catch (CommandException | IOException | ScriptException e)
+            catch (CommandRuntimeException | IOException | ScriptException e)
             {
                 String scriptName = file.getName();
                 ChatOutputHandler.chatError(sender, String.format("FE Script error in %s:", scriptName));
@@ -247,7 +252,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
     }
 
     public static synchronized ScriptInstance getScript(File file)
-            throws IOException, ScriptException, CommandException
+            throws IOException, ScriptException, CommandRuntimeException
     {
         ScriptInstance result = scripts.get(file);
         if (result == null)
@@ -272,7 +277,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
         return result;
     }
 
-    public static ScriptInstance getScript(String uri) throws IOException, ScriptException, CommandException
+    public static ScriptInstance getScript(String uri) throws IOException, ScriptException, CommandRuntimeException
     {
         File f = new File(moduleDir, uri);
         if (!f.exists())
@@ -308,13 +313,13 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
     }
 
     @Override
-    public boolean runEventScripts(String key, CommandSource sender)
+    public boolean runEventScripts(String key, CommandSourceStack sender)
     {
         return runEventScripts(key, sender, null);
     }
 
     @Override
-    public boolean runEventScripts(String key, CommandSource sender, Object additionalData)
+    public boolean runEventScripts(String key, CommandSourceStack sender, Object additionalData)
     {
         JsCommandSource jsSender = JsCommandSource.get(sender);
         String fnName = "on" + StringUtils.capitalize(key);
@@ -328,7 +333,7 @@ public class ModuleJScripting extends ServerEventHandler implements ScriptHandle
                     Object data = null;
                     if (additionalData != null)
                     {
-                        data = getEngine().eval("JSON.parse('" + additionalData.toString() + "')");
+                        data = getEngine().eval("JSON.parse('" + DataManager.toJson(additionalData).replaceAll("\n", "") + "')");
                     }
                     Object ret = script.tryCallGlobal(fnName, jsSender, data);
                     if (ret instanceof Boolean)

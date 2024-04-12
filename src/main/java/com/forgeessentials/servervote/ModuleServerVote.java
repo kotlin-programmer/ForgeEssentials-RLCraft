@@ -19,16 +19,16 @@ import com.forgeessentials.util.events.FEModuleEvent.FEModuleServerStoppingEvent
 import com.forgeessentials.util.output.ChatOutputHandler;
 import com.forgeessentials.util.output.logger.LoggingHandler;
 
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.play.server.SChatPacket;
-import net.minecraft.util.text.ChatType;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.protocol.game.ClientboundChatPacket;
+import net.minecraft.network.chat.ChatType;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.Builder;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.server.ServerLifecycleHooks;
+import net.minecraftforge.fmllegacy.server.ServerLifecycleHooks;
 
 @FEModule(name = "ServerVote", parentMod = ForgeEssentials.class, defaultModule = false, version = ForgeEssentials.CURRENT_MODULE_VERSION)
 public class ModuleServerVote extends ConfigLoaderBase
@@ -49,7 +49,10 @@ public class ModuleServerVote extends ConfigLoaderBase
     @SubscribeEvent
     public void serverStarting(FEModuleServerStartingEvent event)
     {
-        APIRegistry.scripts.addScriptType(scriptKey);
+        if (APIRegistry.scripts != null)
+        {
+            APIRegistry.scripts.addScriptType(scriptKey);
+        }
         try
         {
             votifier = new VoteReceiver(ConfigServerVote.hostname, ConfigServerVote.port, ConfigServerVote.token);
@@ -147,7 +150,7 @@ public class ModuleServerVote extends ConfigLoaderBase
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void serverVoteEvent(VoteEvent vote)
     {
-        ServerPlayerEntity player = ServerLifecycleHooks.getCurrentServer().getPlayerList()
+        ServerPlayer player = ServerLifecycleHooks.getCurrentServer().getPlayerList()
                 .getPlayerByName(vote.player);
         if (player != null)
         {
@@ -164,20 +167,20 @@ public class ModuleServerVote extends ConfigLoaderBase
     {
         if (offlineList.containsKey(e.getPlayer().getDisplayName().getString()))
         {
-            doPlayer((ServerPlayerEntity) e.getPlayer(),
+            doPlayer((ServerPlayer) e.getPlayer(),
                     offlineList.remove(e.getPlayer().getDisplayName().getString()));
         }
     }
 
-    private static void doPlayer(ServerPlayerEntity player, VoteEvent vote)
+    private static void doPlayer(ServerPlayer player, VoteEvent vote)
     {
         log.println(
                 String.format("Player %s voted on service %s on %s", vote.player, vote.serviceName, vote.timeStamp));
         if (!ConfigServerVote.msgAll.equals(""))
         {
             ServerLifecycleHooks.getCurrentServer().getPlayerList()
-                    .broadcastAll(new SChatPacket(
-                            new StringTextComponent(ChatOutputHandler.formatColors(ConfigServerVote.msgAll
+                    .broadcastAll(new ClientboundChatPacket(
+                            new TextComponent(ChatOutputHandler.formatColors(ConfigServerVote.msgAll
                                     .replaceAll("%service", vote.serviceName).replaceAll("%player", vote.player))),
                             ChatType.CHAT, player.getGameProfile().getId()));
         }
@@ -188,8 +191,10 @@ public class ModuleServerVote extends ConfigLoaderBase
                     ChatOutputHandler.formatColors(ConfigServerVote.msgVoter.replaceAll("%service", vote.serviceName)
                             .replaceAll("%player", vote.player)));
         }
-
-        APIRegistry.scripts.runEventScripts(scriptKey, player.createCommandSourceStack());
+        if (APIRegistry.scripts != null)
+        {
+            APIRegistry.scripts.runEventScripts(scriptKey, player.createCommandSourceStack());
+        }
     }
 
     @Override

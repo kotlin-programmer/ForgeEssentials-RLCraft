@@ -3,18 +3,18 @@ package com.forgeessentials.client.auth;
 import java.io.File;
 import java.io.IOException;
 
-import com.forgeessentials.client.ForgeEssentialsClient;
-
 import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.StringNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.StringTag;
+
+import com.forgeessentials.client.ForgeEssentialsClient;
 
 public class AuthAutoLogin
 {
     private final File KEYSTORE_FILE;
 
-    public CompoundNBT KEYSTORE;
+    public CompoundTag KEYSTORE;
 
     public AuthAutoLogin()
     {
@@ -36,14 +36,14 @@ public class AuthAutoLogin
             if (!KEYSTORE_FILE.exists())
             {
                 KEYSTORE_FILE.createNewFile();
-                KEYSTORE = new CompoundNBT();
+                KEYSTORE = new CompoundTag();
             }
-            KEYSTORE = CompressedStreamTools.read(KEYSTORE_FILE);
+            KEYSTORE = NbtIo.read(KEYSTORE_FILE);
         }
         catch (IOException ex)
         {
             ForgeEssentialsClient.feclientlog.error("Unable to load AuthLogin keystore file - will ignore keystore.");
-            KEYSTORE = new CompoundNBT();
+            KEYSTORE = new CompoundTag();
         }
     }
 
@@ -57,10 +57,10 @@ public class AuthAutoLogin
      */
     public void setKey(String serverIP, String key)
     {
-        KEYSTORE.put(serverIP, StringNBT.valueOf(key));
+        KEYSTORE.put(serverIP, StringTag.valueOf(key));
         try
         {
-            CompressedStreamTools.write(KEYSTORE, KEYSTORE_FILE);
+            NbtIo.write(KEYSTORE, KEYSTORE_FILE);
         }
         catch (IOException e)
         {

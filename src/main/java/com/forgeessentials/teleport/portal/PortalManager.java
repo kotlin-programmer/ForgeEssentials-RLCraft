@@ -13,11 +13,11 @@ import com.forgeessentials.util.events.ServerEventHandler;
 import com.forgeessentials.util.events.entity.EntityPortalEvent;
 import com.forgeessentials.util.events.player.PlayerMoveEvent;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BlockEvent.BreakEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -83,8 +83,8 @@ public class PortalManager extends ServerEventHandler
                 if (!MinecraftForge.EVENT_BUS.post(new EntityPortalEvent(e.getEntity(), after.getWorld(),
                         after.getBlockPos(), portal.target.getWorld(), portal.target.getBlockPos())))
                 {
-                    TeleportHelper.doTeleport((ServerPlayerEntity) e.getPlayer(),
-                            portal.target.toWarpPoint(e.getPlayer().xRot, e.getPlayer().yRot));
+                    TeleportHelper.doTeleport((ServerPlayer) e.getPlayer(),
+                            portal.target.toWarpPoint(e.getPlayer().getXRot(), e.getPlayer().getYRot()));
                 }
             }
         }
@@ -95,7 +95,7 @@ public class PortalManager extends ServerEventHandler
     {
         if (FMLEnvironment.dist.isClient())
             return;
-        WorldPoint point = new WorldPoint(event.getWorld(), event.getPos());
+        WorldPoint point = new WorldPoint(event.getPlayer().level, event.getPos());
         Portal portal = getPortalAt(point);
         if (portal != null && portal.hasFrame()) {
             event.setCanceled(true);
@@ -163,7 +163,7 @@ public class PortalManager extends ServerEventHandler
     {
         if (!portal.hasFrame())
             return;
-        World world = ServerUtil.getWorldFromString(portal.getPortalArea().getDimension());
+        Level world = ServerUtil.getWorldFromString(portal.getPortalArea().getDimension());
         if (world != null)
         {
             for (int ix = portal.getPortalArea().getLowPoint().getX(); ix <= portal.getPortalArea().getHighPoint()
@@ -184,7 +184,7 @@ public class PortalManager extends ServerEventHandler
     {
         if (!portal.hasFrame())
             return;
-        World world = ServerUtil.getWorldFromString(portal.getPortalArea().getDimension());
+        Level world = ServerUtil.getWorldFromString(portal.getPortalArea().getDimension());
         if (world != null)
         {
             for (int ix = portal.getPortalArea().getLowPoint().getX(); ix <= portal.getPortalArea().getHighPoint()

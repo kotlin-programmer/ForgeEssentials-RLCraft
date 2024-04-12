@@ -9,8 +9,8 @@ import com.forgeessentials.core.misc.Translator;
 import com.forgeessentials.util.PlayerInfo;
 import com.forgeessentials.util.output.ChatOutputHandler;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
 public class Kit
 {
@@ -25,23 +25,23 @@ public class Kit
 
     private ItemStack[] armor;
 
-    public Kit(PlayerEntity player, String name, int cooldown)
+    public Kit(Player player, String name, int cooldown)
     {
         this.cooldown = cooldown;
         this.name = name;
 
         List<ItemStack> collapsedInventory = new ArrayList<>();
-        for (int i = 0; i < player.inventory.items.size(); i++)
-            if (player.inventory.items.get(i) != ItemStack.EMPTY)
+        for (int i = 0; i < player.getInventory().items.size(); i++)
+            if (player.getInventory().items.get(i) != ItemStack.EMPTY)
             {
-                collapsedInventory.add(player.inventory.items.get(i).copy());
+                collapsedInventory.add(player.getInventory().items.get(i).copy());
             }
         items = collapsedInventory.toArray(new ItemStack[collapsedInventory.size()]);
 
-        armor = new ItemStack[player.inventory.armor.size()];
+        armor = new ItemStack[player.getInventory().armor.size()];
         for (int i = 0; i < 4; i++)
-            if (player.inventory.armor.get(i) != ItemStack.EMPTY)
-                armor[i] = player.inventory.armor.get(i).copy();
+            if (player.getInventory().armor.get(i) != ItemStack.EMPTY)
+                armor[i] = player.getInventory().armor.get(i).copy();
     }
 
     public String getName()
@@ -64,7 +64,7 @@ public class Kit
         return armor;
     }
 
-    public void giveKit(PlayerEntity player)
+    public void giveKit(Player player)
     {
         if (!APIRegistry.perms.checkPermission(player, CommandKit.PERM_BYPASS_COOLDOWN))
         {
@@ -83,16 +83,16 @@ public class Kit
         boolean couldNotGiveItems = false;
 
         for (ItemStack stack : items)
-            couldNotGiveItems |= !player.inventory.add(stack.copy());
+            couldNotGiveItems |= !player.getInventory().add(stack.copy());
 
         for (int i = 0; i < 4; i++)
             if (armor[i] != null)
-                if (player.inventory.armor.get(i) == ItemStack.EMPTY)
+                if (player.getInventory().armor.get(i) == ItemStack.EMPTY)
                 {
-                    player.inventory.armor.set(i, armor[i].copy());
+                    player.getInventory().armor.set(i, armor[i].copy());
                 }
                 else
-                    couldNotGiveItems |= !player.inventory.add(armor[i].copy());
+                    couldNotGiveItems |= !player.getInventory().add(armor[i].copy());
 
         if (couldNotGiveItems)
             ChatOutputHandler.chatError(player.createCommandSourceStack(),

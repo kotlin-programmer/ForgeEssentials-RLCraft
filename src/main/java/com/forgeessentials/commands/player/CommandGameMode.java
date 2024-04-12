@@ -2,6 +2,15 @@ package com.forgeessentials.commands.player;
 
 import java.util.Collection;
 
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
+import net.minecraftforge.server.permission.DefaultPermissionLevel;
+
+import org.jetbrains.annotations.NotNull;
+
 import com.forgeessentials.api.APIRegistry;
 import com.forgeessentials.commands.ModuleCommands;
 import com.forgeessentials.core.commands.ForgeEssentialsCommandBuilder;
@@ -11,14 +20,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.EntityArgument;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.world.GameType;
-import net.minecraftforge.server.permission.DefaultPermissionLevel;
-import org.jetbrains.annotations.NotNull;
 
 public class CommandGameMode extends ForgeEssentialsCommandBuilder
 {
@@ -40,25 +41,28 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
     }
 
     @Override
-    public LiteralArgumentBuilder<CommandSource> setExecution()
+    public LiteralArgumentBuilder<CommandSourceStack> setExecution()
     {
         for (GameType gametype : GameType.values())
         {
-            if (gametype != GameType.NOT_SET)
-            {
-                baseBuilder
-                        .then(Commands.literal(gametype.getName())
-                                .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
-                                .then(Commands.argument("target", EntityArgument.players()).executes(
-                                        CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
-                        .executes(CommandContext -> execute(CommandContext, "blank"));
-            }
+            baseBuilder
+                    .then(Commands.literal(gametype.getName())
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
+            baseBuilder
+                    .then(Commands.literal(String.valueOf(gametype.getId()))
+                            .executes(CommandContext -> execute(CommandContext, "single-" + gametype.getName()))
+                            .then(Commands.argument("target", EntityArgument.players()).executes(
+                                    CommandContext -> execute(CommandContext, "other-" + gametype.getName()))))
+                    .executes(CommandContext -> execute(CommandContext, "blank"));
         }
         return baseBuilder;
     }
 
     @Override
-    public int processCommandPlayer(CommandContext<CommandSource> ctx, String params) throws CommandSyntaxException
+    public int processCommandPlayer(CommandContext<CommandSourceStack> ctx, String params) throws CommandSyntaxException
     {
         if (params.equals("blank"))
         {
@@ -71,13 +75,13 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
             setGameMode(ctx.getSource(), getServerPlayer(ctx.getSource()), GameType.byName(args[1]));
             return Command.SINGLE_SUCCESS;
         }
-        Collection<ServerPlayerEntity> players = EntityArgument.getPlayers(ctx, "target");
+        Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "target");
         setGameModes(ctx.getSource(), players, GameType.byName(args[1]), true);
         return Command.SINGLE_SUCCESS;
     }
 
     @Override
-    public int processCommandConsole(CommandContext<CommandSource> ctx, String params) throws CommandSyntaxException
+    public int processCommandConsole(CommandContext<CommandSourceStack> ctx, String params) throws CommandSyntaxException
     {
         if (params == null)
         {
@@ -90,18 +94,18 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
             ChatOutputHandler.chatError(ctx.getSource(), "Cant set gamemode of the console");
             return Command.SINGLE_SUCCESS;
         }
-        Collection<ServerPlayerEntity> players = EntityArgument.getPlayers(ctx, "target");
+        Collection<ServerPlayer> players = EntityArgument.getPlayers(ctx, "target");
         setGameModes(ctx.getSource(), players, GameType.byName(args[1]), false);
         return Command.SINGLE_SUCCESS;
     }
 
-    public void setGameMode(CommandSource sender, ServerPlayerEntity target)
+    public void setGameMode(CommandSourceStack sender, ServerPlayer target)
     {
 
         setGameMode(sender, target, target.isCreative() ? GameType.SURVIVAL : GameType.CREATIVE);
     }
 
-    public void setGameMode(CommandSource sender, ServerPlayerEntity target, GameType mode)
+    public void setGameMode(CommandSourceStack sender, ServerPlayer target, GameType mode)
     {
         if (target.gameMode.getGameModeForPlayer() != mode)
         {
@@ -112,10 +116,10 @@ public class CommandGameMode extends ForgeEssentialsCommandBuilder
         }
     }
 
-    public void setGameModes(CommandSource source, Collection<ServerPlayerEntity> players, GameType mode,
+    public void setGameModes(CommandSourceStack source, Collection<ServerPlayer> players, GameType mode,
             boolean isPlayer)
     {
-        for (ServerPlayerEntity serverplayerentity : players)
+        for (ServerPlayer serverplayerentity : players)
         {
             if (isPlayer)
             {
