@@ -139,7 +139,7 @@ jobs:
           CHANGE_LOG: ${{ steps.download-artifact.outputs.result }}
         run: |
           mkdir -p build/libs
-          mkdir -p jscripting
+          mkdir -p -o jscripting
           unzip binaries.zip -d build/libs
           unzip jscripting.zip -d jscripting
           mkdir ./tmp
