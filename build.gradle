@@ -102,7 +102,7 @@ if (buildNumber != "DEV"){
 }
 
 ext.set 'changelog', System.getenv("CHANGE_LOG")
-ext.set 'releaseType', 'beta'
+ext.set 'releaseType', 'alpha'
 
 // Get commit hash
 
