@@ -1,13 +1,16 @@
 package com.forgeessentials.chat.discord;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message.Attachment;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -15,13 +18,22 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.ClickEvent.Action;
+import net.minecraft.event.HoverEvent;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;
+import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.event.CommandEvent;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.AchievementEvent;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.forgeessentials.api.APIRegistry;
@@ -122,7 +134,11 @@ public class DiscordHandler extends ConfigLoaderBase
             jda = JDABuilder.createDefault(token)
                     .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                     .build();
-            jda.getPresence().setActivity(Activity.playing(MinecraftServer.getServer().getMOTD()));
+            String motd = MinecraftServer.getServer().getMOTD().replaceAll("§.","");
+            if (motd.length() > 128) {
+                motd = motd.substring(0,128);
+            }
+            jda.getPresence().setActivity(Activity.playing(motd));
             jda.addEventListener(new MessageListener());
         }
     }
@@ -137,6 +153,20 @@ public class DiscordHandler extends ConfigLoaderBase
         return jda != null;
     }
 
+    private String convertToMC(String msg, String format)
+    {
+        return msg.replaceAll("(?<=\\s|^)\\*\\*\\*([^*]+)\\*\\*\\*", "&l&o$1" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)\\*\\*([^*]+)\\*\\*","&l$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)\\*([^*]+)\\*","&o$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)_([^_]+)_","&o$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)__\\*([^_]+)\\*__", "&n&o$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)__\\*\\*([^*]+)\\*\\*__", "&n&l$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)__\\*\\*\\*([^*]+)\\*\\*\\*__", "&n&l&o$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)__([^_]+)__", "&n$1&r" + (format != null ? ("&"+format) : ""))
+                .replaceAll("(?<=\\s|^)~~([^~]*)~~", "&m$1&f&"+format)
+                .replaceFirst("^#+(\\s*)", "$l$1");
+    }
+
     public class MessageListener extends ListenerAdapter
     {
         @Override
@@ -145,16 +175,65 @@ public class DiscordHandler extends ConfigLoaderBase
             if (showMessages && !event.isFromType(ChannelType.PRIVATE) && event.getGuild().getIdLong() == serverID && event.getMember() != null
                     && channels.contains(event.getChannel().getName()) && !event.getAuthor().equals(jda.getSelfUser()))
             {
+                String content = event.getMessage().getContentDisplay();
                 String suffix = String.format("<%s> %s", event.getMember().getEffectiveName(),
-                        event.getMessage().getContentDisplay());
+                        content);
+
                 String msg = selectedChannel.equals(event.getChannel().getName()) ? suffix : String.format("#%s %s", event.getChannel().getName(), suffix);
-                ChatOutputHandler.broadcast(msg, false);
+
+                try
+                {
+                    String textFormats = APIRegistry.perms.getGlobalPermissionProperty(ModuleChat.getPermTextformat());
+
+                    String text = (textFormats != null ? ("&" + textFormats) : "") + convertToMC(msg, textFormats);
+                    if (!event.getMessage().getAttachments().isEmpty()) {
+                        text += !content.isEmpty() ? " : " : "Attachments: ";
+                    }
+                    IChatComponent _msg = new ChatComponentText(ChatOutputHandler.formatColors(text));
+
+                    List<Attachment> attachments = event.getMessage().getAttachments();
+                    if (!attachments.isEmpty()) {
+                        for (int i = 0; i < attachments.size(); i++)
+                        {
+                            String desc = attachments.get(i).getDescription();
+                            String fileName = attachments.get(i).getFileName();
+
+
+                            if (i != attachments.size() - 1) {
+                                fileName += " ";
+                            }
+                            ChatComponentText link = new ChatComponentText(fileName);
+                            if (textFormats != null) {
+                            ChatOutputHandler.applyFormatting(link.getChatStyle(), ChatOutputHandler.enumChatFormattings(textFormats));
+                            }
+                            link.getChatStyle().setChatClickEvent(new ClickEvent(Action.OPEN_URL, attachments.get(i).getUrl()));
+                            link.getChatStyle().setUnderlined(true);
+                            if (desc != null)
+                            {
+                                link.getChatStyle().setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(desc)));
+                            }
+                            _msg.appendSibling(link);
+                        }
+                    }
+                    ChatOutputHandler.broadcast(_msg, false);
+                } catch (Exception e) { //Catch Exceptions to prevent a crash if the server isn't fully loaded yet when a message is received
+                    LoggingHandler.felog.warn("Error caught when receiving message: " + msg + " " + e.getMessage(), e);
+                }
             }
         }
     }
 
+    private boolean checkMessage(String msg)
+    {
+        return msg.contains("New player EntityPlayerMP");
+    }
+
     public void sendMessage(String msg)
     {
+        if (checkMessage(msg)) {
+            return;
+        }
+
         if (isConnected())
         {
             try
@@ -169,15 +248,36 @@ public class DiscordHandler extends ConfigLoaderBase
                     }
                 }
             } catch (ErrorResponseException e) {
-                LoggingHandler.felog.warn("Error Sending Discord Message: " + e.getMessage(), e);
+                LoggingHandler.felog.warn("Error Sending Discord Message: {}", e.getMessage(), e);
             }
         }
     }
 
+    HashMap<UUID, HashSet<String>> playerMap = new HashMap<>();
+    @SubscribeEvent(priority =  EventPriority.LOWEST)
+    public  void achievementEvent(AchievementEvent event) {
+        if (sendMessages && !(event.entityPlayer instanceof FakePlayer) && event.entityPlayer instanceof EntityPlayerMP && !((EntityPlayerMP) event.entityPlayer).func_147099_x().hasAchievementUnlocked(event.achievement))
+        {
+            if (!playerMap.containsKey(event.entityPlayer.getUniqueID()))
+            {
+                playerMap.put(event.entityPlayer.getUniqueID(), new HashSet<>());
+            }
+
+            if (playerMap.get(event.entityPlayer.getUniqueID()).contains(event.achievement.statId)) {
+                LoggingHandler.felog.debug("Duplicate Entry Detected for {}:{}! {}", event.entityPlayer.getUniqueID(),event.entityPlayer.getCommandSenderName(), event.achievement.statId);
+                return;
+            }
+
+            playerMap.get(event.entityPlayer.getUniqueID()).add(event.achievement.statId);
+            LoggingHandler.felog.debug(event.achievement.toString());
+            sendMessage(Translator.format("%s has just earned the achievement ***`%s`***", event.entityPlayer.getCommandSenderName(), event.achievement.func_150951_e().getUnformattedText()));
+
+        }
+    }
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void chatEvent(ServerChatEvent event)
     {
-        if (sendMessages)
+        if (sendMessages&& !(event.player instanceof FakePlayer))
         {
             sendMessage(ChatOutputHandler.stripFormatting(event.component.getUnformattedText()));
         }
@@ -186,7 +286,7 @@ public class DiscordHandler extends ConfigLoaderBase
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void playerLoginEvent(PlayerLoggedInEvent event)
     {
-        if (showGameEvents)
+        if (showGameEvents && !(event.player instanceof FakePlayer))
         {
             sendMessage(Translator.format("%s joined the game", event.player.getCommandSenderName()));
         }
@@ -195,7 +295,7 @@ public class DiscordHandler extends ConfigLoaderBase
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void playerLoginEvent(PlayerLoggedOutEvent event)
     {
-        if (showGameEvents)
+        if (showGameEvents && !(event.player instanceof FakePlayer))
         {
             sendMessage(Translator.format("%s left the game", event.player.getCommandSenderName()));
         }
@@ -208,9 +308,9 @@ public class DiscordHandler extends ConfigLoaderBase
         {
             return;
         }
-        if (showGameEvents)
+        if (showGameEvents && !(event.entityLiving instanceof FakePlayer))
         {
-            sendMessage(Translator.format("%s died", event.entityLiving.getCommandSenderName()));
+            sendMessage(Translator.format("_%s died_", event.entityLiving.getCommandSenderName()));
         }
     }
 
@@ -231,7 +331,7 @@ public class DiscordHandler extends ConfigLoaderBase
     {
         if (showGameEvents)
         {
-            sendMessage(Translator.translate("Server Started!"));
+            sendMessage(Translator.translate("**Server Started!**"));
         }
     }
 
@@ -239,7 +339,7 @@ public class DiscordHandler extends ConfigLoaderBase
     {
         if (showGameEvents)
         {
-            sendMessage(Translator.translate("Server Stopped!"));
+            sendMessage(Translator.translate("**Server Stopped!**"));
         }
     }
 
@@ -248,7 +348,7 @@ public class DiscordHandler extends ConfigLoaderBase
     {
         if (showGameEvents)
         {
-            sendMessage(Translator.format("New player %s has joined the server!", e.getPlayer()));
+            sendMessage(Translator.format("***New player %s has joined the server!***", e.getPlayer()));
         }
     }
 }
