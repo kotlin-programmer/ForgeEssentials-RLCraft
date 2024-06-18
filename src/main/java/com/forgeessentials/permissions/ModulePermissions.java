@@ -78,7 +78,14 @@ public class ModulePermissions extends ConfigLoaderBase implements IPermissionHa
     @SubscribeEvent
     public void handlerFactory(Handler event) {
         event.addPermissionHandler(new ResourceLocation(handlerId), this);
-        ForgeConfig.SERVER.permissionHandler.set(handlerId);
+        String handler = ForgeConfig.SERVER.permissionHandler.get();
+        if ("forge:default_handler".equals(handler))
+        {
+            ForgeConfig.SERVER.permissionHandler.set(handlerId);
+            ForgeConfig.SERVER.permissionHandler.save();
+        } else if (!handler.equals(handlerId)) {
+            LoggingHandler.felog.warn("Unexpected Handler: {} detected.  Forge Essentials is not designed to work with other handlers!", handler);
+        }
     }
     public ModulePermissions()
     {
