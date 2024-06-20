@@ -7,11 +7,12 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.TheEndBiomeSource;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 @FEBiomeProvider(providerName = "minecraft:end")
 public class MinecraftEndBiomeProviderHolder extends BiomeProviderHolderBase {
 	@Override
-	public BiomeSource createBiomeProvider(Registry<Biome> biomes, long seed) {
+	public BiomeSource createBiomeProvider(Registry<Biome> biomes, Registry<StructureSet> structureSets, long seed) {
 		return new TheEndBiomeSource(biomes, seed);
 	}
 

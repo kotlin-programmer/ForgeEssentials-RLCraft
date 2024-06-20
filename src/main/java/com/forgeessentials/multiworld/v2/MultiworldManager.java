@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -32,6 +33,7 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.WorldGenSettings;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.storage.DerivedLevelData;
 import net.minecraft.world.level.storage.LevelStorageSource.LevelStorageAccess;
 import net.minecraft.world.level.storage.WorldData;
@@ -256,11 +258,13 @@ public class MultiworldManager extends ServerEventHandler implements NamedWorldH
 	{
 		long seed = BiomeManager.obfuscateSeed(world.getSeed());
 		Registry<Biome> biomeRegistry =server.registryAccess().registryOrThrow(Registry.BIOME_REGISTRY);
-		DimensionType dimType = providerHandler.getDimensionTypeByName(world.getDimensionType());
-		BiomeSource biomeProvider = providerHandler.generateBiomeProviderByName(world.getBiomeProvider(), biomeRegistry, seed);
+		Registry<StructureSet> structureSetRegistry =server.registryAccess().registryOrThrow(Registry.STRUCTURE_SET_REGISTRY);
+		Registry<DimensionType> dimTypeRegistry =server.registryAccess().registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY);
+		Holder<DimensionType> dimType = providerHandler.getDimensionTypeHolderByName(dimTypeRegistry, world.getDimensionType());
+		BiomeSource biomeProvider = providerHandler.generateBiomeProviderByName(world.getBiomeProvider(), biomeRegistry, structureSetRegistry, seed);
 		NoiseGeneratorSettings dimSettings = providerHandler.getDimensionSettingsByName(world.getDimensionSetting());
 		ChunkGenerator  chunkGenerator = providerHandler.generateChunkGeneratorByName(
-	    		  biomeRegistry, world.getChunkGenerator(), 
+	    		  biomeRegistry, structureSetRegistry, world.getChunkGenerator(), 
 	    		  biomeProvider, seed, () -> dimSettings);
 		
 		if(dimType==null)
@@ -272,7 +276,7 @@ public class MultiworldManager extends ServerEventHandler implements NamedWorldH
 		if(chunkGenerator==null)
 			throw new MultiworldException(Type.NO_CHUNK_GENERATOR);
 
-		return new LevelStem(() -> dimType, chunkGenerator);
+		return new LevelStem(dimType, chunkGenerator);
 	}
 
 	private ServerLevel createAndRegisterWorldAndDimension(MinecraftServer server, ResourceKey<Level> worldKey, Multiworld world) throws MultiworldException
@@ -286,8 +290,8 @@ public class MultiworldManager extends ServerEventHandler implements NamedWorldH
 			return existingLevel;
 		}
 		ServerLevel overworld = server.getLevel(Level.OVERWORLD);
-		ResourceKey<LevelStem> dimensionKey = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, worldKey.location());
-		LevelStem dimension = dimensionGenerator(server, world);
+		ResourceKey<LevelStem> levelStemKey = ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, worldKey.location());
+		LevelStem levelStem = dimensionGenerator(server, world);
 
 		ChunkProgressListenerFactory chunkListenerFactory = CHUNK_STATUS_LISTENER_FACTORY_FIELD.apply(server);
 		Executor executor = BACKGROUND_EXECUTOR_FIELD.apply(server);
@@ -295,7 +299,7 @@ public class MultiworldManager extends ServerEventHandler implements NamedWorldH
 
 		WorldData serverConfig = server.getWorldData();
 		WorldGenSettings dimensionGeneratorSettings = serverConfig.worldGenSettings();
-		dimensionGeneratorSettings.dimensions().register(dimensionKey, dimension, Lifecycle.experimental());
+		dimensionGeneratorSettings.dimensions().register(levelStem, levelStem, Lifecycle.experimental());
 		DerivedLevelData derivedworldinfo = new DerivedLevelData(serverConfig, serverConfig.overworldData());
 		ServerLevel newWorld = new ServerWorldMultiworld(
 			server,
@@ -303,9 +307,9 @@ public class MultiworldManager extends ServerEventHandler implements NamedWorldH
 			levelSave,
 			derivedworldinfo,
 			worldKey,
-			dimension.type(),
+			levelStem.typeHolder(),
 			chunkListenerFactory.create(11),
-			dimension.generator(),
+			levelStem.generator(),
 			dimensionGeneratorSettings.isDebug(),
 			world.getSeed(),
 			ImmutableList.of(), // "special spawn list"

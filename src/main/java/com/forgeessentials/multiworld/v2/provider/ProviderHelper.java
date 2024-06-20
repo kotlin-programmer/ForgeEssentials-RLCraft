@@ -5,11 +5,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -19,6 +20,7 @@ import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.ModFileScanData;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -59,12 +61,17 @@ public class ProviderHelper {
     /**
      * Returns the {@Link DimensionType} for a given dimensionType {@Link String}
      */
-    public DimensionType getDimensionTypeByName(String dimensionType) throws MultiworldException
+    public Holder<DimensionType> getDimensionTypeHolderByName(Registry<DimensionType> dimTypeRegistry, String dimensionType) throws MultiworldException
     {
-    	DimensionType type = dimensionTypes.get(dimensionType);
-        if (type == null)
-            throw new MultiworldException(MultiworldException.Type.NO_DIMENSION_TYPE);
-        return type;
+    	Optional<ResourceKey<DimensionType>> regDim = dimTypeRegistry.getResourceKey(dimensionTypes.get(dimensionType));
+    	if(regDim.isEmpty()) {
+    		throw new MultiworldException(MultiworldException.Type.NO_DIMENSION_TYPE);
+    	}
+    	try {
+    		return dimTypeRegistry.getHolderOrThrow(regDim.get());
+    	}catch(IllegalStateException e) {
+    		throw new MultiworldException(MultiworldException.Type.NO_DIMENSION_TYPE);
+    	}
     }
     
 	/**
@@ -102,12 +109,12 @@ public class ProviderHelper {
     /**
      * Returns the {@Link BiomeProvider} for a given biomeProvider {@Link String}
      */
-    public BiomeSource generateBiomeProviderByName(String biomeProviderType, Registry<Biome> biomes, long seed) throws MultiworldException
+    public BiomeSource generateBiomeProviderByName(String biomeProviderType, Registry<Biome> biomes, Registry<StructureSet> structureSets, long seed) throws MultiworldException
     {
     	BiomeSource type=null;
     	try {
     		BiomeProviderHolderBase holder =  biomeProviderTypes.get(biomeProviderType);
-    		type = holder.createBiomeProvider(biomes, seed);
+    		type = holder.createBiomeProvider(biomes, structureSets, seed);
     	}catch(Exception e){
     		e.printStackTrace();
     	}
@@ -172,12 +179,12 @@ public class ProviderHelper {
     /**
      * Returns the {@Link ChunkGenerator} for a given chunkGenerator {@Link String}
      */
-    public ChunkGenerator generateChunkGeneratorByName(Registry<Biome> biomes, String chunkGeneratorType, BiomeSource biome, long seed, Supplier<NoiseGeneratorSettings> dimSettings) throws MultiworldException
+    public ChunkGenerator generateChunkGeneratorByName(Registry<Biome> biomes, Registry<StructureSet> structureSets, String chunkGeneratorType, BiomeSource biome, long seed, Holder<NoiseGeneratorSettings> dimSettings) throws MultiworldException
     {
     	ChunkGenerator type=null;
     	try {
     		ChunkGeneratorHolderBase holder =  chunkGenerators.get(chunkGeneratorType);
-    		type = holder.createChunkGenerator(biomes, seed, biome, dimSettings);
+    		type = holder.createChunkGenerator(biomes, structureSets, seed, biome, dimSettings);
     	}catch(Exception e){
     		e.printStackTrace();
     	}

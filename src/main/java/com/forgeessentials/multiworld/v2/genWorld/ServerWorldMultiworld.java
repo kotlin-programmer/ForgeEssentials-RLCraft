@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.portal.PortalForcer;
@@ -23,10 +24,10 @@ public class ServerWorldMultiworld extends ServerLevel
 	public ServerWorldMultiworld(MinecraftServer mcServer, 
 			Executor executor, LevelStorageSource.LevelStorageAccess levelSave, 
 			ServerLevelData derivedworldinfo, ResourceKey<Level> worldKey, 
-			DimensionType type, ChunkProgressListener chunkListener, 
+			Holder<DimensionType> holder, ChunkProgressListener chunkListener, 
 			ChunkGenerator chunkGenerator, boolean debug, long seed, 
 			List<CustomSpawner> spawn, boolean tick) {
-		super(mcServer, executor, levelSave, derivedworldinfo, worldKey, type, chunkListener, chunkGenerator, debug, seed, spawn, tick);
+		super(mcServer, executor, levelSave, derivedworldinfo, worldKey, holder, chunkListener, chunkGenerator, debug, seed, spawn, tick);
 		this.worldTeleporter = new PortalForcer(this);
 	}
 

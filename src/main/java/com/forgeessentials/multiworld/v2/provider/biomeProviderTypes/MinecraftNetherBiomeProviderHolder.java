@@ -7,12 +7,13 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 @FEBiomeProvider(providerName = "minecraft:nether")
 public class MinecraftNetherBiomeProviderHolder extends BiomeProviderHolderBase {
 	@Override
-	public BiomeSource createBiomeProvider(Registry<Biome> biomes, long seed) {
-		return MultiNoiseBiomeSource.Preset.NETHER.biomeSource(biomes, seed);
+	public BiomeSource createBiomeProvider(Registry<Biome> biomes, Registry<StructureSet> structureSets, long seed) {
+		return MultiNoiseBiomeSource.Preset.NETHER.biomeSource(biomes);
 	}
 
 	@Override

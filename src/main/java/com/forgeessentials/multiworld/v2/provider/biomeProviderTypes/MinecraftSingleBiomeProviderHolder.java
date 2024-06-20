@@ -8,12 +8,13 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.FixedBiomeSource;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 
 @FEBiomeProvider(providerName = "minecraft:single")
 public class MinecraftSingleBiomeProviderHolder extends BiomeProviderHolderBase {
 	@Override
-	public BiomeSource createBiomeProvider(Registry<Biome> biomes, long seed) {
-		return new FixedBiomeSource(biomes.get(Biomes.PLAINS));
+	public BiomeSource createBiomeProvider(Registry<Biome> biomes, Registry<StructureSet> structureSets, long seed) {
+		return new FixedBiomeSource(biomes.getHolderOrThrow(Biomes.PLAINS));
 	}
 
 	@Override
