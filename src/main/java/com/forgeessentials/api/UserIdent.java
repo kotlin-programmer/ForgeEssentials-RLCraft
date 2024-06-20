@@ -16,12 +16,18 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 
+import com.forgeessentials.core.ForgeEssentials;
+import com.forgeessentials.permissions.ModulePermissions;
 import com.forgeessentials.util.ServerUtil;
 import com.forgeessentials.util.UserIdentUtils;
+import com.forgeessentials.util.output.LoggingHandler;
 import com.google.gson.annotations.Expose;
 import com.mojang.authlib.GameProfile;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.Event;
+
+import javax.annotation.Nullable;
 
 public class UserIdent
 {
@@ -140,6 +146,11 @@ public class UserIdent
 
     /* ------------------------------------------------------------ */
 
+    public static synchronized UserIdent get(GameProfile profile)
+    {
+        return get(profile.getId(), profile.getName());
+    } 
+
     public static synchronized UserIdent get(UUID uuid, String username)
     {
         if (uuid == null && (username == null || username.isEmpty()))
@@ -162,9 +173,18 @@ public class UserIdent
                 if (uuid != null && ident.uuid != uuid)
                 {
                     ident.uuid = uuid;
-                    byUuid.put(uuid,ident);
+                    byUuid.put(uuid, ident);
                 }
                 return ident;
+            }
+
+            if (username.startsWith("$NPC") || username.startsWith("[") || UUID.nameUUIDFromBytes(username.getBytes()).equals(uuid))
+            {
+                return new NpcUserIdent(uuid, username);
+            }
+            else if (username.startsWith("$"))
+            {
+                return new ServerUserIdent(uuid, username);
             }
         }
 
@@ -204,13 +224,12 @@ public class UserIdent
 
     public static synchronized UserIdent get(EntityPlayer player)
     {
-        return player instanceof EntityPlayerMP ? get((EntityPlayerMP) player) : null;
-    }
-
-    public static synchronized UserIdent get(EntityPlayerMP player)
-    {
         if (player == null)
             throw new IllegalArgumentException();
+        
+        if (!(player instanceof EntityPlayerMP) || player instanceof FakePlayer) {
+            return getNpc(player.getDisplayName(), ModulePermissions.fakePlayerIsSpecialBunny ? null : player.getPersistentID());
+        }
 
         UserIdent ident = byUuid.get(player.getPersistentID());
         if (ident == null)
@@ -218,11 +237,17 @@ public class UserIdent
             ident = byUsername.get(player.getCommandSenderName().toLowerCase());
             if (ident != null)
             {
-                ident.uuid = player.getPersistentID();
-                byUuid.put(ident.uuid, ident);
+                if (ident.uuid != player.getPersistentID())
+                {
+                    if (ident.uuid != null) {
+                        byUuid.remove(ident.uuid);
+                    }
+                    ident.uuid = player.getPersistentID();
+                    byUuid.put(ident.uuid, ident);
+                }
             }
             else
-                ident = new UserIdent(player);
+                ident = new UserIdent((EntityPlayerMP) player);
         }
         else
         {
@@ -299,22 +324,41 @@ public class UserIdent
         if (ident == null)
             ident = byUsername.get(username);
 
-        if (ident == null || !(ident instanceof ServerUserIdent))
+        if (!(ident instanceof ServerUserIdent))
             ident = new ServerUserIdent(_uuid, username);
 
         return (ServerUserIdent) ident;
     }
 
-    public static synchronized NpcUserIdent getNpc(String npcName)
+    public static synchronized NpcUserIdent getNpc(String npcName) {
+        return getNpc(npcName, null);
+    }
+
+    public static synchronized NpcUserIdent getNpc(String npcName, @Nullable UUID uuid)
     {
         String username = "$NPC" + (npcName == null ? "" : "_" + npcName.toUpperCase());
-        UUID _uuid = UUID.nameUUIDFromBytes(username.getBytes());
+        UUID _uuid = uuid != null ? uuid : UUID.nameUUIDFromBytes(username.getBytes());
 
         UserIdent ident = byUuid.get(_uuid);
-        if (ident != null)
+        if (ident == null)
             ident = byUsername.get(username);
+        else if (ident instanceof NpcUserIdent)
+        {
+            if (!username.equals(ident.username))
+                ident.username = username;
+        }
 
-        if (ident == null || !(ident instanceof NpcUserIdent))
+        if (ident instanceof NpcUserIdent)
+        {
+            if (!_uuid.equals(ident.uuid))
+            {
+                byUuid.remove(ident.uuid);
+                ident.uuid = uuid;
+                byUuid.put(ident.uuid, ident);
+            }
+        }
+
+        if (!(ident instanceof NpcUserIdent))
             ident = new NpcUserIdent(_uuid, username);
 
         return (NpcUserIdent) ident;
@@ -568,7 +612,7 @@ public class UserIdent
                     // The string was a username and not a UUID
                 }
             }
-            return username == null ? false : this.username.equalsIgnoreCase((String) other);
+            return username != null && this.username.equalsIgnoreCase((String) other);
         }
         else if (other instanceof UUID)
         {
