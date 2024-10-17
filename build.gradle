@@ -382,24 +382,6 @@ project.processClientResources {
  * Configure server jar (default)
  */
 
- // JavaExec task for generating tsd
-//  Calls the main class for the TSD generator since that is working
-
-task tsd(type: JavaExec) {
-    dependsOn "classes"
-    classpath = project.sourceSets.test.compileClasspath
-    mainClass = "com.forgeessentials.jscripting.TsdGenerator"
-    doLast {
-        copy {
-            from files("jscripting/") {
-                include "*.d.ts"
-            }
-			duplicatesStrategy = DuplicatesStrategy.INCLUDE
-            into "build/resources/main/com/forgeessentials/jscripting"
-        }
-    }
-}
-
 // Pack libraries as zip file to include them in the jar file
 task serverLibArchive(type: Zip) {
 	archiveName = "libraries.zip"
@@ -410,14 +392,13 @@ task serverLibArchive(type: Zip) {
 }
 
 jar.doLast {
-	delete (serverLibArchive.archivePath)
-	delete (processSource.outputs)
+//	delete (serverLibArchive.archivePath)
+//	delete (processSource.outputs)
 }
 
 // Configure server jar (default)
 jar {
 	dependsOn "serverLibArchive"
-    dependsOn "tsd"
 	classifier = "server"
 	appendix = project.minecraftVersion
 	
@@ -487,17 +468,17 @@ task deobfJar(dependsOn: "classes", type: Jar) {
 		from serverManifest
 	}
 }
-//
-//task sourceJar(type: Jar) {
-//	classifier = "sources"
-//	appendix = project.minecraftVersion
-//
-//	from sourceSets.main.allSource
-//
-//	manifest {
-//		from serverManifest
-//	}
-//}
+
+task sourceJar(type: Jar) {
+	classifier = "sources"
+	appendix = project.minecraftVersion
+
+	from sourceSets.main.allSource
+
+	manifest {
+		from serverManifest
+	}
+}
 
 
 /************************************************************
@@ -567,7 +548,7 @@ task Annotations(type: Jar) {
 
 // Add default artifacts for task "build"
 artifacts {
-	//archives deobfJar
+	archives deobfJar
 	archives clientJar
 	archives Annotations
 }
@@ -579,7 +560,7 @@ artifacts {
 apply plugin: "maven-publish"
 
 publishing {
-	//tasks.publish.dependsOn "deobfJar"
+	tasks.publish.dependsOn "deobfJar"
 
 	publications {
 		mavenJava (MavenPublication) {
@@ -590,7 +571,7 @@ publishing {
 				version mod_base + "." + mod_major
 
 			artifact deobfJar
-			//artifact sourceJar
+			artifact sourceJar
 			artifact javadocJar
 
 			pom.withXml {

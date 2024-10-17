@@ -34,7 +34,9 @@ public abstract class MixinICommandSender implements ICommandSender
         {
             permNode = PermissionManager.getCommandPermission(cmd);
         }
-        else if ("@".equals(commandName)) {
+        else if ("claimit".equals(commandName)) {
+          return;
+        } else if ("@".equals(commandName)) {
             return;
         } else
         {

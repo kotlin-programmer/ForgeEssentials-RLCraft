@@ -128,7 +128,6 @@ public class FELaunchHandler implements ITweaker
             extractLibraries();
         loadLibraries(classLoader);
         loadModules(classLoader);
-        classLoader.registerTransformer(EventTransformer.class.getName());
     }
 
     /* ------------------------------------------------------------ */

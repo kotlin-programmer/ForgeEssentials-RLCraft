@@ -237,7 +237,7 @@ public class UserIdent
         {
             return APIRegistry.IDENT_RCON;
         }
-        else if (sender instanceof CommandBlockBaseLogic)
+        else if (sender instanceof CommandBlockBaseLogic || "SpawnCommandLogic".equals(sender.getClass().getSimpleName()) || "@".equals(sender.getName()))
         {
             return APIRegistry.IDENT_CMDBLOCK;
         }

@@ -16,7 +16,7 @@ public class WorldServerMultiworld extends WorldServer
     private SimpleTeleporter worldTeleporter;
 
     public WorldServerMultiworld(MinecraftServer mcServer, ISaveHandler saveHandler, WorldInfo info, int dimensionId, WorldServer worldServer,
-            Profiler profilerIn, Multiworld world)
+            Profiler profilerIn)
     {
         super(mcServer, saveHandler, info, dimensionId, profilerIn);
         this.mapStorage = worldServer.getMapStorage();

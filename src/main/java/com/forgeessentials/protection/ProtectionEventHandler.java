@@ -36,8 +36,6 @@ import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent.CheckSpawn;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent.SpecialSpawn;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.EntityItemPickupEvent;
 import net.minecraftforge.event.entity.player.PlayerContainerEvent;
@@ -56,7 +54,6 @@ import net.minecraftforge.fe.event.entity.FallOnBlockEvent;
 import net.minecraftforge.fe.event.world.FireEvent;
 import net.minecraftforge.fe.event.world.PressurePlateEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.eventhandler.Event.Result;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
@@ -569,51 +566,6 @@ public class ProtectionEventHandler extends ServerEventHandler
             // TODO: We change some vanilla behaviour here - is this ok?
             // Personally I think this is a good change though
             world.provider.resetRainAndThunder();
-        }
-    }
-
-    /* ------------------------------------------------------------ */
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void checkSpawnEvent(CheckSpawn event)
-    {
-        if (FMLCommonHandler.instance().getEffectiveSide().isClient())
-            return;
-        if (!(event.getEntityLiving() instanceof EntityLiving))
-            return;
-        EntityLiving entity = (EntityLiving) event.getEntityLiving();
-        WorldPoint point = new WorldPoint(entity);
-        // TODO: Create a cache for spawn permissions
-        if (!APIRegistry.perms.checkUserPermission(null, point, ModuleProtection.PERM_MOBSPAWN_NATURAL + "." + EntityList.getEntityString(entity)))
-        {
-            event.setResult(Result.DENY);
-            return;
-        }
-        if (!APIRegistry.perms.checkUserPermission(null, point, MobType.getMobType(entity).getSpawnPermission(false)))
-        {
-            event.setResult(Result.DENY);
-            return;
-        }
-    }
-
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    public void specialSpawnEvent(SpecialSpawn event)
-    {
-        if (FMLCommonHandler.instance().getEffectiveSide().isClient())
-            return;
-        if (!(event.getEntityLiving() instanceof EntityLiving))
-            return;
-        EntityLiving entity = (EntityLiving) event.getEntityLiving();
-        WorldPoint point = new WorldPoint(entity);
-        if (!APIRegistry.perms.checkUserPermission(null, point, ModuleProtection.PERM_MOBSPAWN_FORCED + "." + EntityList.getEntityString(entity)))
-        {
-            event.setResult(Result.DENY);
-            return;
-        }
-        if (!APIRegistry.perms.checkUserPermission(null, point, MobType.getMobType(entity).getSpawnPermission(true)))
-        {
-            event.setResult(Result.DENY);
-            return;
         }
     }
 
